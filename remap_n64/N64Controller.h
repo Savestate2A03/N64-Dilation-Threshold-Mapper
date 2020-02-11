@@ -68,6 +68,7 @@ class N64Controller {
     inline char* raw_dump() { return (interface->raw_dump); } 
     
     void print_N64_status();
+    void print_N64_status_alt();
   private:
     N64Interface * interface;
 

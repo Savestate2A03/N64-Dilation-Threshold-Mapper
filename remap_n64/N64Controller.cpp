@@ -71,6 +71,23 @@ void N64Controller::print_N64_status()
     Serial.println(axis_y(), DEC);
 }
 
+void N64Controller::print_N64_status_alt()
+{
+    // bits: A, B, Z, Start, Dup, Ddown, Dleft, Dright
+    // bits: 0, 0, L, R, Cup, Cdown, Cleft, Cright
+    int i;
+   for (i=0; i<16; i++) {
+       Serial.print(raw_dump()[i], DEC);
+    }
+    Serial.print(' ');
+    Serial.print(axis_x(), DEC);
+    Serial.print(' ');
+    Serial.print(axis_y(), DEC);
+    Serial.print(" \n");
+
+    delay(25);
+}
+
 void N64Controller::update() {
   unsigned char command[] = {0x01};
   noInterrupts();

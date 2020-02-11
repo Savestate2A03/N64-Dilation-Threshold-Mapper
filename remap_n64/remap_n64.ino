@@ -6,7 +6,7 @@
 
 #include "pins_arduino.h"
 #include "N64Controller.h"
-#include "N64Communication.c"
+#include "N64Communication.cpp"
 #include <math.h>
 
 #define THRESHOLD 67 // What radius the dilation kicks in
@@ -18,6 +18,7 @@ N64Controller n64c (10); // This controller for player one is on PIN 10
 void setup()
 {
   n64c.begin(); // Initialisation
+  Serial.begin(57600);
   n64_init();
 }
 
@@ -51,6 +52,7 @@ void buffer_setup() {
 
 void loop() {
     n64c.update();      // get controller inputs
-    buffer_setup();     // process controller inputs 
+    //buffer_setup();     // process controller inputs 
+    //n64c.print_N64_status_alt();
     n64_command_wait(); // block for N64 to send controller inputs
 }
