@@ -19,6 +19,10 @@ N64 console power can either go into the controller, or be left loose.
 
 Use a logic level shifter so you're not sending 5v logic back to the N64/Controller from the Nano. 
 
+## 8MHz + 3.3v option
+
+If you have the capabilities to flash the bootloader (ex by ISP or another Ardiuno), there's a [branch of this repo](https://github.com/Savestate2A03/N64-Dilation-Threshold-Mapper/tree/8mhz-3.3v) by [Jademalo](https://github.com/Jademalo) that works at 8MHz which allows for an operating voltage of 3.3v which gets around having to step up the voltage to 5v and having to set up a logic level shifter. 
+
 ## Credits
 
 Arduino N64 Controller Library by Kai Luke: https://github.com/pothos/arduino-n64-controller-library
