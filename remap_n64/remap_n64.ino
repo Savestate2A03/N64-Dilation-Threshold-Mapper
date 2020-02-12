@@ -52,8 +52,8 @@ void buffer_setup() {
 }
 
 void loop() {
-    //n64c.update();      // get controller inputs
-    //buffer_setup();     // process controller inputs 
+    n64c.update();      // get controller inputs
+    buffer_setup();     // process controller inputs 
     //n64c.print_N64_status_alt();
     n64_command_wait(); // block for N64 to send controller inputs
 }

@@ -297,7 +297,7 @@ static void n64_command_wait() {
         case 0x00:
             // blast out the pre-assembled array in n64_buffer
 
-            n64_send(n64_test_buffer, 4, 0);
+            n64_send(n64_buffer, 4, 0);
 
             //Serial.println("It was 0x01: the query command");
             //Serial.flush();
