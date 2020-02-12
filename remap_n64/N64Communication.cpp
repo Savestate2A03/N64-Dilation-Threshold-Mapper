@@ -1,8 +1,8 @@
 // Modified by Joseph El-Khouri to strip out the Gamecube input code
+// Modified by Jademalo to retime the protocols to work on an 8MHz ATMega328P
 
 /*
  Copyright (c) 2009 Andrew Brown
-
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
  files (the "Software"), to deal in the Software without
@@ -11,10 +11,8 @@
  copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following
  conditions:
-
  The above copyright notice and this permission notice shall be
  included in all copies or substantial portions of the Software.
-
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -27,6 +25,19 @@
 
 #include <Arduino.h>
 #include "N64Communication.h"
+
+
+#define NOP asm volatile ("nop")
+#define NOP5 asm volatile ("nop\nnop\nnop\nnop\nnop\n")
+#define NOP14 asm volatile ("nop\nnop\nnop\nnop\nnop\n" \
+                              "nop\nnop\nnop\nnop\nnop\n" \
+                              "nop\nnop\nnop\nnop\n")
+#define NOP30 asm volatile ("nop\nnop\nnop\nnop\nnop\n" \
+                              "nop\nnop\nnop\nnop\nnop\n" \
+                              "nop\nnop\nnop\nnop\nnop\n" \
+                              "nop\nnop\nnop\nnop\nnop\n" \
+                              "nop\nnop\nnop\nnop\nnop\n" \
+                              "nop\nnop\nnop\nnop\nnop\n")
 
 static void n64_init() {
   // Communication with the N64 on this pin
@@ -44,6 +55,8 @@ static void n64_send(unsigned char *buffer, char length, bool wide_stop)
     asm volatile (";Starting N64 Send Routine");
     // Send these bytes
     char bits;
+    bits=8;
+    goto post_high;
     
     // This routine is very carefully timed by examining the assembly output.
     // Do not change any statements, it could throw the timings off
@@ -62,48 +75,37 @@ outer_loop:
         bits=8;
 inner_loop:
         {
+          N64_HIGH;
+          post_high:
             // Starting a bit, set the line low
             asm volatile (";Setting line to low");
-            N64_LOW; // 1 op, 2 cycles
-
+            
             asm volatile (";branching");
             if (*buffer >> 7) {
+              N64_LOW; // 1 op, 2 cycles
                 asm volatile (";Bit is a 1");
                 // 1 bit
                 // remain low for 1us, then go high for 3us
                 // nop block 1
-                asm volatile ("nop\nnop\nnop\nnop\nnop\n");
-                
+                NOP; NOP; NOP;
                 asm volatile (";Setting line to high");
                 N64_HIGH;
 
                 // nop block 2
                 // we'll wait only 2us to sync up with both conditions
                 // at the bottom of the if statement
-                asm volatile ("nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              );
+                NOP5;
 
-            } else {
+            } else {             
+              N64_LOW; // 1 op, 2 cycles
                 asm volatile (";Bit is a 0");
                 // 0 bit
                 // remain low for 3us, then go high for 1us
                 // nop block 3
-                asm volatile ("nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\n");
+                NOP5; NOP; NOP;
 
                 asm volatile (";Setting line to high");
-                N64_HIGH;
+                //N64_HIGH;
 
                 // wait for 1us
                 asm volatile ("; end of conditional branch, need to wait 1us more before next bit");
@@ -118,14 +120,14 @@ inner_loop:
             if (bits != 0) {
                 // nop block 4
                 // this block is why a for loop was impossible
-                asm volatile ("nop\nnop\nnop\nnop\nnop\n"  
-                              "nop\nnop\nnop\nnop\n");
                 // rotate bits
                 asm volatile (";rotating out bits");
                 *buffer <<= 1;
+                //N64_HIGH;
 
                 goto inner_loop;
             } // fall out of inner loop
+            //N64_HIGH;
         }
         asm volatile (";continuing outer loop");
         // In this case: the inner loop exits and the outer loop iterates,
@@ -140,20 +142,16 @@ inner_loop:
 
     // send a single stop (1) bit
     // nop block 5
-    asm volatile ("nop\nnop\nnop\nnop\n");
+    N64_HIGH;
+    NOP5; NOP5;
     N64_LOW;
     // wait 1 us, 16 cycles, then raise the line 
     // take another 3 off for the wide_stop check
     // 16-2-3=11
     // nop block 6
-    asm volatile ("nop\nnop\nnop\nnop\nnop\n"
-                  "nop\nnop\nnop\nnop\nnop\n"  
-                  "nop\n");
+    NOP; NOP;
     if (wide_stop) {
-        asm volatile (";another 1us for extra wide stop bit\n"
-                      "nop\nnop\nnop\nnop\nnop\n"
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\n");
+        NOP5; NOP; NOP; NOP;
     }
 
     N64_HIGH;
@@ -187,9 +185,9 @@ static void get_n64_command()
 
     // wait to make sure the line is idle before
     // we begin listening
-    for (idle_wait=32; idle_wait>0; --idle_wait) {
+    for (idle_wait=16; idle_wait>0; --idle_wait) {
         if (!N64_QUERY) {
-            idle_wait = 32;
+            idle_wait = 16;
         }
     }
 
@@ -198,14 +196,7 @@ read_loop:
         while (N64_QUERY){}
 
         // wait approx 2us and poll the line
-        asm volatile (
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                );
+        NOP; NOP; NOP;
         if (N64_QUERY)
             n64_command |= 0x01;
 
@@ -250,14 +241,7 @@ read_loop2:
         while (N64_QUERY){}
 
         // wait approx 2us and poll the line
-        asm volatile (
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                );
+        NOP; NOP; NOP;
         *bitbin = N64_QUERY;
         ++bitbin;
         --bitcount;
@@ -269,11 +253,19 @@ read_loop2:
         goto read_loop2;
 }
 
+
+
 static void n64_command_wait() {
 
     int status;
     unsigned char data, addr;
-
+            n64_ident_buffer[0] = 0x05;
+            n64_ident_buffer[1] = 0x00;
+            n64_ident_buffer[2] = 0x01;
+            n64_test_buffer[0] = 0x55;
+            n64_test_buffer[1] = 0x55;
+            n64_test_buffer[2] = 0x55;
+            n64_test_buffer[3] = 0x55;
     noInterrupts();
     get_n64_command();
 
@@ -283,7 +275,7 @@ static void n64_command_wait() {
     // 0x03 is write
     switch (n64_command)
     {
-        case 0x00:
+        case 0x01:
         case 0xFF:
             // identify
             // mutilate the n64_buffer array with our status
@@ -294,23 +286,24 @@ static void n64_command_wait() {
             // I don't know why it's different, but the controllers seem to
             // send a set of status bytes afterwards the same as 0x00, and
             // it won't work without it.
-            n64_buffer[0] = 0x05;
-            n64_buffer[1] = 0x00;
-            n64_buffer[2] = 0x01;
+            //n64_buffer[0] = 0x05;
+            //n64_buffer[1] = 0x00;
+            //n64_buffer[2] = 0x01;
 
-            n64_send(n64_buffer, 3, 0);
+            n64_send(n64_ident_buffer, 3, 0);
 
             //Serial.println("It was 0x00: an identify command");
             //Serial.flush();
             break;
-        case 0x01:
+        case 0x00:
             // blast out the pre-assembled array in n64_buffer
+
             n64_send(n64_buffer, 4, 0);
 
             //Serial.println("It was 0x01: the query command");
             //Serial.flush();
             break;
-        case 0x02:
+        /*case 0x02:
             // A read. If the address is 0x8000, return 32 bytes of 0x80 bytes,
             // and a CRC byte.  this tells the system our attached controller
             // pack is a rumble pack
@@ -324,8 +317,8 @@ static void n64_command_wait() {
 
             //Serial.println("It was 0x02: the read command");
             //Serial.flush();
-            break;
-        case 0x03:
+            //break;*/
+        /*case 0x03:
             // A write. we at least need to respond with a single CRC byte.  If
             // the write was to address 0xC000 and the data was 0x01, turn on
             // rumble! All other write addresses are ignored. (but we still
@@ -375,7 +368,7 @@ static void n64_command_wait() {
             Serial.println(data, HEX);
             Serial.flush();
             */
-            break;
+            //break;
 
         default:/*
             Serial.print(millis(), DEC);

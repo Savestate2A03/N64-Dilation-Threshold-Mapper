@@ -1,3 +1,5 @@
+// Modified by Jademalo to retime the protocols to work on an 8MHz ATMega328P
+
 #include "N64Interface.h"
 
 #include <Arduino.h>
@@ -5,6 +7,9 @@
 
 #define NOP asm volatile ("nop")
 #define NOP5 asm volatile ("nop\nnop\nnop\nnop\nnop\n")
+#define NOP14 asm volatile ("nop\nnop\nnop\nnop\nnop\n" \
+                              "nop\nnop\nnop\nnop\nnop\n" \
+                              "nop\nnop\nnop\nnop\n")
 #define NOP30 asm volatile ("nop\nnop\nnop\nnop\nnop\n" \
                               "nop\nnop\nnop\nnop\nnop\n" \
                               "nop\nnop\nnop\nnop\nnop\n" \
@@ -19,9 +24,9 @@
 #define N64_PIND_LOW DDRD |= pincode
 #define N64_PIND_QUERY (PIND & pincode)
 
-#define N64_PINB_HIGH DDRB &= ~pincode
-#define N64_PINB_LOW DDRB |= pincode
-#define N64_PINB_QUERY (PINB & pincode)
+#define N64_PINB_HIGH DDRB &= ~0x04
+#define N64_PINB_LOW DDRB |= 0x04
+#define N64_PINB_QUERY (PINB & 0x04)
 
 void N64Interface_PINB::init() {
   unsigned char initialize = 0x00;
@@ -48,26 +53,24 @@ outer_loop:
 inner_loop:
         {
             asm volatile (";Setting line to low");
-            N64_PINB_LOW;
+            //N64_PINB_LOW;
             asm volatile (";branching");
             if (*buffer >> 7) {
                 asm volatile (";Bit is a 1");
-                NOP5;
                 asm volatile (";Setting line to high");
                 N64_PINB_HIGH;
-                NOP30;
+                NOP5;
             } else {
                 asm volatile (";Bit is a 0");
-                NOP30; NOP5; NOP;
-
                 asm volatile (";Setting line to high");
                 N64_PINB_HIGH;
                 asm volatile ("; end of conditional branch, need to wait 1us more before next bit");
+                NOP;
             }
             asm volatile (";finishing inner loop body");
+            N64_PINB_LOW;
             --bits;
             if (bits != 0) {
-                NOP5; NOP; NOP; NOP; NOP;
                 asm volatile (";rotating out bits");
                 *buffer <<= 1;
                 goto inner_loop;
@@ -80,9 +83,10 @@ inner_loop:
             goto outer_loop;
         }
     }
-    NOP; NOP; NOP; NOP;
+    N64_PINB_HIGH;
+    NOP14; NOP5; NOP;
     N64_PINB_LOW;
-    NOP5; NOP5; NOP; NOP; NOP; NOP;
+    NOP5; 
     N64_PINB_HIGH;
 }
 
@@ -97,7 +101,7 @@ read_loop:
         if (!--timeout)
             return;
     }
-    NOP30;
+    NOP5; NOP; NOP; NOP;
     *bitbin = N64_PINB_QUERY;
     ++bitbin;
     --bitcount;
@@ -260,7 +264,7 @@ read_loop:
             return;
     }
     // wait approx 2us and poll the line
-    NOP30;
+    NOP14;
     *bitbin = N64_PIND_QUERY;
     ++bitbin;
     --bitcount;
