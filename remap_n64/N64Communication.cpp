@@ -240,7 +240,7 @@ read_loop2:
         while (N64_QUERY){}
 
         // wait approx 2us and poll the line
-        //NOP5; NOP5;
+        NOP; NOP; NOP;
         *bitbin = N64_QUERY;
         ++bitbin;
         --bitcount;
