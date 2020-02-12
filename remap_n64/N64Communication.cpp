@@ -54,6 +54,8 @@ static void n64_send(unsigned char *buffer, char length, bool wide_stop)
     asm volatile (";Starting N64 Send Routine");
     // Send these bytes
     char bits;
+    bits=8;
+    goto post_high;
     
     // This routine is very carefully timed by examining the assembly output.
     // Do not change any statements, it could throw the timings off
@@ -75,7 +77,7 @@ inner_loop:
           N64_HIGH;
             // Starting a bit, set the line low
             asm volatile (";Setting line to low");
-
+            
             asm volatile (";branching");
             if (*buffer >> 7) {
               N64_LOW; // 1 op, 2 cycles
@@ -93,6 +95,7 @@ inner_loop:
                 NOP5;
 
             } else {
+              post_high:
               N64_LOW; // 1 op, 2 cycles
                 asm volatile (";Bit is a 0");
                 // 0 bit
@@ -147,10 +150,7 @@ inner_loop:
     // nop block 6
     NOP; NOP;
     if (wide_stop) {
-        asm volatile (";another 1us for extra wide stop bit\n"
-                      "nop\nnop\nnop\nnop\nnop\n"
-                      "nop\nnop\nnop\nnop\nnop\n"  
-                      "nop\nnop\nnop\nnop\n");
+        NOP5; NOP; NOP; NOP;
     }
 
     N64_HIGH;
@@ -184,9 +184,9 @@ static void get_n64_command()
 
     // wait to make sure the line is idle before
     // we begin listening
-    for (idle_wait=32; idle_wait>0; --idle_wait) {
+    for (idle_wait=16; idle_wait>0; --idle_wait) {
         if (!N64_QUERY) {
-            idle_wait = 32;
+            idle_wait = 16;
         }
     }
 
@@ -195,7 +195,7 @@ read_loop:
         while (N64_QUERY){}
 
         // wait approx 2us and poll the line
-        NOP5;
+        NOP5; NOP5;
         if (N64_QUERY)
             n64_command |= 0x01;
 
@@ -240,7 +240,7 @@ read_loop2:
         while (N64_QUERY){}
 
         // wait approx 2us and poll the line
-        NOP5;
+        NOP5; NOP5;
         *bitbin = N64_QUERY;
         ++bitbin;
         --bitcount;
@@ -256,7 +256,6 @@ static void n64_command_wait() {
 
     int status;
     unsigned char data, addr;
-
     noInterrupts();
     get_n64_command();
 
@@ -277,23 +276,28 @@ static void n64_command_wait() {
             // I don't know why it's different, but the controllers seem to
             // send a set of status bytes afterwards the same as 0x00, and
             // it won't work without it.
-            n64_buffer[0] = 0x05;
-            n64_buffer[1] = 0x00;
-            n64_buffer[2] = 0x01;
+            //n64_buffer[0] = 0x05;
+            //n64_buffer[1] = 0x00;
+            //n64_buffer[2] = 0x01;
 
-            n64_send(n64_buffer, 3, 0);
+            n64_send(n64_ident_buffer, 3, 0);
 
-            Serial.println("It was 0x00: an identify command");
+            //Serial.println("It was 0x00: an identify command");
             //Serial.flush();
             break;
         case 0x01:
             // blast out the pre-assembled array in n64_buffer
+            n64_buffer[0] = 0x80;
+            n64_buffer[1] = 0x00;
+            n64_buffer[2] = 0x00;
+            n64_buffer[3] = 0x00
+            ;
             n64_send(n64_buffer, 4, 0);
 
-            Serial.println("It was 0x01: the query command");
+            //Serial.println("It was 0x01: the query command");
             //Serial.flush();
             break;
-        case 0x02:
+        /*case 0x02:
             // A read. If the address is 0x8000, return 32 bytes of 0x80 bytes,
             // and a CRC byte.  this tells the system our attached controller
             // pack is a rumble pack
@@ -305,10 +309,10 @@ static void n64_command_wait() {
 
             n64_send(n64_buffer, 33, 1);
 
-            Serial.println("It was 0x02: the read command");
+            //Serial.println("It was 0x02: the read command");
             //Serial.flush();
-            break;
-        case 0x03:
+            //break;*/
+        /*case 0x03:
             // A write. we at least need to respond with a single CRC byte.  If
             // the write was to address 0xC000 and the data was 0x01, turn on
             // rumble! All other write addresses are ignored. (but we still
@@ -358,7 +362,7 @@ static void n64_command_wait() {
             Serial.println(data, HEX);
             Serial.flush();
             */
-            break;
+            //break;
 
         default:/*
             Serial.print(millis(), DEC);

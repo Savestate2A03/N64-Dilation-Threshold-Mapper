@@ -43,6 +43,7 @@ static unsigned char n64_command;
 // bytes to send to the 64
 // maximum we'll need to send is 33, 32 for a read request and 1 CRC byte
 static unsigned char n64_buffer[33];
+static unsigned char n64_ident_buffer[33];
 
 static void n64_init();
 
