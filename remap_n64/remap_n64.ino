@@ -20,9 +20,7 @@ void setup()
   n64c.begin(); // Initialisation
   //Serial.begin(57600);
   n64_init();
-            n64_ident_buffer[0] = 0x05;
-            n64_ident_buffer[1] = 0x00;
-            n64_ident_buffer[2] = 0x02;
+
 }
 
 void expando(signed char* x_axis, signed char* y_axis) {

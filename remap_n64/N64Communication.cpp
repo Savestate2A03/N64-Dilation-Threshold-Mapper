@@ -75,6 +75,7 @@ outer_loop:
 inner_loop:
         {
           N64_HIGH;
+          post_high:
             // Starting a bit, set the line low
             asm volatile (";Setting line to low");
             
@@ -94,8 +95,7 @@ inner_loop:
                 // at the bottom of the if statement
                 NOP5;
 
-            } else {
-              post_high:
+            } else {             
               N64_LOW; // 1 op, 2 cycles
                 asm volatile (";Bit is a 0");
                 // 0 bit
@@ -252,6 +252,9 @@ read_loop2:
         goto read_loop2;
 }
 
+const uint8_t n64_test_buffer[] = {0x55, 0x55, 0x55, 0x55};
+const uint8_t n64_ident_buffer[] = {0x05, 0x00, 0x02};
+
 static void n64_command_wait() {
 
     int status;
@@ -287,12 +290,8 @@ static void n64_command_wait() {
             break;
         case 0x01:
             // blast out the pre-assembled array in n64_buffer
-            n64_buffer[0] = 0x80;
-            n64_buffer[1] = 0x00;
-            n64_buffer[2] = 0x00;
-            n64_buffer[3] = 0x00
-            ;
-            n64_send(n64_buffer, 4, 0);
+
+            n64_send(n64_test_buffer, 4, 0);
 
             //Serial.println("It was 0x01: the query command");
             //Serial.flush();
