@@ -195,7 +195,7 @@ read_loop:
         while (N64_QUERY){}
 
         // wait approx 2us and poll the line
-        NOP5; NOP5;
+        NOP; NOP; NOP;
         if (N64_QUERY)
             n64_command |= 0x01;
 
@@ -240,7 +240,7 @@ read_loop2:
         while (N64_QUERY){}
 
         // wait approx 2us and poll the line
-        NOP5; NOP5;
+        //NOP5; NOP5;
         *bitbin = N64_QUERY;
         ++bitbin;
         --bitcount;
@@ -252,13 +252,19 @@ read_loop2:
         goto read_loop2;
 }
 
-const uint8_t n64_test_buffer[] = {0x55, 0x55, 0x55, 0x55};
-const uint8_t n64_ident_buffer[] = {0x05, 0x00, 0x02};
+
 
 static void n64_command_wait() {
 
     int status;
     unsigned char data, addr;
+            n64_ident_buffer[0] = 0x05;
+            n64_ident_buffer[1] = 0x00;
+            n64_ident_buffer[2] = 0x01;
+            n64_test_buffer[0] = 0x55;
+            n64_test_buffer[1] = 0x55;
+            n64_test_buffer[2] = 0x55;
+            n64_test_buffer[3] = 0x55;
     noInterrupts();
     get_n64_command();
 
@@ -268,7 +274,7 @@ static void n64_command_wait() {
     // 0x03 is write
     switch (n64_command)
     {
-        case 0x00:
+        case 0x01:
         case 0xFF:
             // identify
             // mutilate the n64_buffer array with our status
@@ -288,7 +294,7 @@ static void n64_command_wait() {
             //Serial.println("It was 0x00: an identify command");
             //Serial.flush();
             break;
-        case 0x01:
+        case 0x00:
             // blast out the pre-assembled array in n64_buffer
 
             n64_send(n64_test_buffer, 4, 0);
