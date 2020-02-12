@@ -138,7 +138,8 @@ inner_loop:
 
     // send a single stop (1) bit
     // nop block 5
-    asm volatile ("nop\nnop\nnop\nnop\n");
+    N64_HIGH;
+    NOP5; NOP5;
     N64_LOW;
     // wait 1 us, 16 cycles, then raise the line 
     // take another 3 off for the wide_stop check
