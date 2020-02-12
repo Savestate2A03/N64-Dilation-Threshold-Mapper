@@ -1,4 +1,5 @@
 // Modified by Joseph El-Khouri to strip out the Gamecube input code
+// Modified by Jademalo to retime the protocols to work on an 8MHz ATMega328P
 
 /*
  Copyright (c) 2009 Andrew Brown

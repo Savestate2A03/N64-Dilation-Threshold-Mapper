@@ -2,6 +2,7 @@
 // Check files for their respective licenses.
 
 // Adapter math by Savestate aka Joseph El-Khouri
+// Retiming for an 8MHz arduino by Jademalo
 // Non-library portions of code are Public Domain
 
 #include "pins_arduino.h"

@@ -1,3 +1,5 @@
+// Modified by Jademalo to retime the protocols to work on an 8MHz ATMega328P
+
 #include "N64Interface.h"
 
 #include <Arduino.h>
